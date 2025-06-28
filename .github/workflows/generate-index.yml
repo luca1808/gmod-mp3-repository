@@ -1,65 +1,89 @@
-name: Generate index.html for music files
+- name: Generate index.html
+  run: |
+    cat > index.html <<'EOF'
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <title>GMod Music Explorer</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
+        body {
+          margin: 0; padding: 1rem;
+          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #1e1e1e;
+          color: #d4d4d4;
+          user-select: none;
+        }
+        h1 {
+          margin-bottom: 1rem;
+          font-weight: normal;
+        }
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          border: 1px solid #333;
+          border-radius: 6px;
+          background: #252526;
+          max-width: 600px;
+        }
+        li {
+          display: flex;
+          align-items: center;
+          padding: 0.5rem 1rem;
+          border-bottom: 1px solid #333;
+          cursor: default;
+          transition: background 0.15s ease-in-out;
+        }
+        li:last-child {
+          border-bottom: none;
+        }
+        li:hover {
+          background-color: #094771;
+          color: #fff;
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .icon {
+          width: 20px;
+          height: 20px;
+          margin-right: 0.75rem;
+          fill: #6a9955;
+          flex-shrink: 0;
+        }
+        .file-icon {
+          fill: #569cd6;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>GMod Music Explorer</h1>
+      <ul>
+    EOF
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    # Folder icon SVG as a variable (unused here but you can extend for folders)
+    # File icon SVG for music files:
+    read -r -d '' FILE_ICON <<'EOM'
+    <svg class="icon file-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" >
+      <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zM13 3.5L18.5 9H13V3.5zM9 14v-4h2v4H9zm4 0v-4h2v4h-2z"/>
+    </svg>
+    EOM
 
+    find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" \) | sort | while read file; do
+      name=$(basename "$file")
+      # Escape & for HTML safety if needed, but filenames usually safe
+      echo "  <li>${FILE_ICON}<a href=\"$name\" target=\"_blank\" rel=\"noopener\">$name</a></li>" >> index.html
+    done
 
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
-    - name: Generate index.html
-      run: |
-        cat > index.html <<EOF
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <title>My GMod Music Files</title>
-          <style>
-            body { font-family: "Segoe UI", sans-serif; background: #f4f4f4; padding: 2em; }
-            h1 { font-size: 1.5em; }
-            ul { list-style: none; padding: 0; }
-            li { margin: 0.25em 0; padding: 0.5em; background: white; border-radius: 5px; }
-            a { text-decoration: none; color: #0078d4; }
-            a:hover { text-decoration: underline; }
-          </style>
-        </head>
-        <body>
-          <h1>Available Music Files</h1>
-          <ul>
-        EOF
-
-        find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" \) | sort | while read file; do
-          name=$(basename "$file")
-          echo "    <li><a href=\"$name\">$name</a></li>" >> index.html
-        done
-
-        echo "  </ul>" >> index.html
-        echo "</body>" >> index.html
-        echo "</html>" >> index.html
-
-    - name: Commit and push index.html
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git add index.html
-        if ! git diff --cached --quiet; then
-          git commit -m "Auto-update index.html"
-          git push origin HEAD:main
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    cat >> index.html <<'EOF'
+      </ul>
+    </body>
+    </html>
+    EOF
