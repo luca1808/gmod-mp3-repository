@@ -1,89 +1,159 @@
-- name: Generate index.html
-  run: |
-    cat > index.html <<'EOF'
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <title>GMod Music Explorer</title>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
-        body {
-          margin: 0; padding: 1rem;
-          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #1e1e1e;
-          color: #d4d4d4;
-          user-select: none;
-        }
-        h1 {
-          margin-bottom: 1rem;
-          font-weight: normal;
-        }
-        ul {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          border: 1px solid #333;
-          border-radius: 6px;
-          background: #252526;
-          max-width: 600px;
-        }
-        li {
-          display: flex;
-          align-items: center;
-          padding: 0.5rem 1rem;
-          border-bottom: 1px solid #333;
-          cursor: default;
-          transition: background 0.15s ease-in-out;
-        }
-        li:last-child {
-          border-bottom: none;
-        }
-        li:hover {
-          background-color: #094771;
-          color: #fff;
-        }
-        a {
-          color: inherit;
-          text-decoration: none;
-          flex: 1;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .icon {
-          width: 20px;
-          height: 20px;
-          margin-right: 0.75rem;
-          fill: #6a9955;
-          flex-shrink: 0;
-        }
-        .file-icon {
-          fill: #569cd6;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>GMod Music Explorer</h1>
-      <ul>
-    EOF
+name: Generate recursive index.html for media files
 
-    # Folder icon SVG as a variable (unused here but you can extend for folders)
-    # File icon SVG for music files:
-    read -r -d '' FILE_ICON <<'EOM'
-    <svg class="icon file-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" >
-      <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zM13 3.5L18.5 9H13V3.5zM9 14v-4h2v4H9zm4 0v-4h2v4h-2z"/>
-    </svg>
-    EOM
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-    find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" \) | sort | while read file; do
-      name=$(basename "$file")
-      # Escape & for HTML safety if needed, but filenames usually safe
-      echo "  <li>${FILE_ICON}<a href=\"$name\" target=\"_blank\" rel=\"noopener\">$name</a></li>" >> index.html
-    done
+jobs:
+  generate:
+    runs-on: ubuntu-latest
 
-    cat >> index.html <<'EOF'
-      </ul>
-    </body>
-    </html>
-    EOF
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate recursive index.html files
+      run: |
+        #!/bin/bash
+        # Recursively generate index.html files for each directory with media files/folders
+
+        generate_index() {
+          local dir="$1"
+          local index_file="$dir/index.html"
+
+          # Start the html file with header and style
+          cat > "$index_file" <<'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Media Explorer - Directory Listing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
+  body {
+    margin: 0; padding: 1rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    user-select: none;
+  }
+  h1 {
+    margin-bottom: 1rem;
+    font-weight: normal;
+    font-size: 1.5rem;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #252526;
+    max-width: 800px;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #333;
+    cursor: default;
+    transition: background 0.15s ease-in-out;
+  }
+  li:last-child {
+    border-bottom: none;
+  }
+  li:hover {
+    background-color: #094771;
+    color: #fff;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+    fill: #6a9955;
+  }
+  .folder-icon {
+    fill: #d7ba7d;
+  }
+  .file-icon {
+    fill: #569cd6;
+  }
+  nav {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  nav a {
+    color: #569cd6;
+    text-decoration: none;
+    margin-right: 1rem;
+  }
+  nav a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+EOF
+
+          # Add navigation link to parent if not root
+          if [[ "$dir" != "." ]]; then
+            echo "<nav><a href=\"../index.html\">&#8592; Parent folder</a></nav>" >> "$index_file"
+          fi
+
+          # Add heading with directory path
+          if [[ "$dir" == "." ]]; then
+            echo "<h1>Media Explorer: Root Directory</h1>" >> "$index_file"
+          else
+            local display_dir=${dir#./}
+            echo "<h1>Media Explorer: $display_dir</h1>" >> "$index_file"
+          fi
+
+          echo "<ul>" >> "$index_file"
+
+          # List directories first
+          find "$dir" -mindepth 1 -maxdepth 1 -type d | sort | while read -r folder; do
+            local folder_name=$(basename "$folder")
+            # Link to folder's own index.html (generate_index will make it)
+            echo "  <li><svg class=\"icon folder-icon\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a4 4 0 0 0-4-4h-8l-2-2z\"/></svg><a href=\"$folder_name/index.html\">$folder_name</a></li>" >> "$index_file"
+          done
+
+          # List files with media extensions
+          find "$dir" -mindepth 1 -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" -o -iname "*.mp4" -o -iname "*.webm" \) | sort | while read -r file; do
+            local file_name=$(basename "$file")
+            echo "  <li><svg class=\"icon file-icon\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zM13 3.5L18.5 9H13V3.5zM9 14v-4h2v4H9zm4 0v-4h2v4h-2z\"/></svg><a href=\"$file_name\" target=\"_blank\" rel=\"noopener\">$file_name</a></li>" >> "$index_file"
+          done
+
+          echo "</ul>" >> "$index_file"
+          echo "</body>" >> "$index_file"
+          echo "</html>" >> "$index_file"
+        }
+
+        # Generate for root and all subdirectories recursively
+        find . -type d | sort | while read -r d; do
+          generate_index "$d"
+        done
+
+    - name: Commit and push index.html files
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add '**/index.html'
+        if ! git diff --cached --quiet; then
+          git commit -m "Auto-update recursive index.html files"
+          git push origin HEAD:main
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
