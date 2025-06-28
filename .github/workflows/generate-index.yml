@@ -2,7 +2,7 @@ name: Generate index.html for music files
 
 on:
   push:
-    branches: [main] # or 'master' depending on your default branch
+    branches: [main]
 
 jobs:
   generate:
@@ -11,6 +11,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -19,37 +21,43 @@ jobs:
 
     - name: Generate index.html
       run: |
-        echo '<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>My GMod Music Files</title>
-  <style>
-    body { font-family: "Segoe UI", sans-serif; background: #f4f4f4; padding: 2em; }
-    h1 { font-size: 1.5em; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 0.25em 0; padding: 0.5em; background: white; border-radius: 5px; }
-    a { text-decoration: none; color: #0078d4; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>Available Music Files</h1>
-  <ul>' > index.html
+        cat > index.html <<EOF
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <title>My GMod Music Files</title>
+          <style>
+            body { font-family: "Segoe UI", sans-serif; background: #f4f4f4; padding: 2em; }
+            h1 { font-size: 1.5em; }
+            ul { list-style: none; padding: 0; }
+            li { margin: 0.25em 0; padding: 0.5em; background: white; border-radius: 5px; }
+            a { text-decoration: none; color: #0078d4; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <h1>Available Music Files</h1>
+          <ul>
+        EOF
 
         find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" \) | sort | while read file; do
           name=$(basename "$file")
           echo "    <li><a href=\"$name\">$name</a></li>" >> index.html
         done
 
-        echo '  </ul>
-</body>
-</html>' >> index.html
+        echo "  </ul>" >> index.html
+        echo "</body>" >> index.html
+        echo "</html>" >> index.html
 
-    - name: Commit and push if changed
+    - name: Commit and push index.html
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         git add index.html
-        git diff --cached --quiet || git commit -m "Update index.html with latest music files"
-        git push
+        if ! git diff --cached --quiet; then
+          git commit -m "Auto-update index.html"
+          git push origin HEAD:main
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
