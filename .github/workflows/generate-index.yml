@@ -3,6 +3,8 @@ name: Generate index.html for music files
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
 
 jobs:
   generate:
