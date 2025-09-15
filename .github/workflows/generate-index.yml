@@ -47,8 +47,9 @@ jobs:
         <body>
           <h1>Available Music & Video Files</h1>
           <ul>
-        EOF
-        find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" -o -iname "*.mp4" -o -iname "*.webm" \) | sort | while read file; do
+       EOF
+        find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) | sort | while read file; do
+          name=$(basename "$file")
           name=$(basename "$file")
           ext="${name##*.}"
           if [[ "$ext" =~ ^(mp3|wav|ogg|flac)$ ]]; then
