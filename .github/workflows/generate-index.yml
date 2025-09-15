@@ -1,4 +1,4 @@
-name: Generate index.html for music files
+name: Generate index.html for media files
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
         <html lang="en">
         <head>
           <meta charset="UTF-8" />
-          <title>My GMod Music Files</title>
+          <title>My GMod Files</title>
           <style>
             body { font-family: "Segoe UI", sans-serif; background: #121212; color: #eee; padding: 2em; }
             h1 { font-size: 1.5em; margin-bottom: 1em; }
@@ -45,17 +45,18 @@ jobs:
           </style>
         </head>
         <body>
-          <h1>Available Music & Video Files</h1>
+          <h1>Available Files</h1>
           <ul>
-       EOF
-        find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) | sort | while read file; do
-          name=$(basename "$file")
+        EOF
+        find . -maxdepth 1 -type f \( -iname "*.mp3" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.flac" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) | sort | while read file; do
           name=$(basename "$file")
           ext="${name##*.}"
           if [[ "$ext" =~ ^(mp3|wav|ogg|flac)$ ]]; then
             icon='<svg class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>'
           elif [[ "$ext" =~ ^(mp4|webm)$ ]]; then
             icon='<svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+          elif [[ "$ext" =~ ^(png|jpg|jpeg)$ ]]; then
+            icon='<svg class="icon" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8 11l2.5 3L14 9l5 7H5l3-5z"/></svg>'
           else
             icon='<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>'
           fi
